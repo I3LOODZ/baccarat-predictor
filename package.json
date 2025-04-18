@@ -15,6 +15,6 @@
     "postcss": "^8.4.21"
   },
   "devDependencies": {
-  "@tailwindcss/postcss": "^0.1.0"
+    "@tailwindcss/postcss": "^0.1.0"
   }
 }
