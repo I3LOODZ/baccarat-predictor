@@ -1,93 +1,32 @@
-"use client"
+"use client";
+
 import { useState } from "react";
 
-export default function Home() {
-  const [inputs, setInputs] = useState<string[]>([]);
-  const [prediction, setPrediction] = useState<string | null>(null);
-  const [next15, setNext15] = useState<string[]>([]);
+const COLORS = { P: "bg-blue-600", B: "bg-red-600", T: "bg-green-600", };
 
-  const handleAdd = (value: string) => {
-    if (inputs.length < 10) {
-      setInputs([...inputs, value]);
-    }
-  };
+const OPTIONS = ["P", "B", "T"];
 
-  const handleClear = () => {
-    setInputs([]);
-    setPrediction(null);
-    setNext15([]);
-  };
+export default function Home() { const [grid, setGrid] = useState<string[][]>(Array.from({ length: 10 }, () => Array(6).fill(""))); const [locked, setLocked] = useState(false); const [resultGrid, setResultGrid] = useState<string[][]>([]); const [checkGrid, setCheckGrid] = useState<string[][]>([]); const [history, setHistory] = useState<string[][]>([]);
 
-  const generateNext15 = (base: string) => {
-    const result: string[] = [];
-    for (let i = 0; i < 15; i++) {
-      const rand = Math.random();
-      if (base === "P") {
-        result.push(rand < 0.65 ? "P" : "B"); // เน้น P
-      } else {
-        result.push(rand < 0.65 ? "B" : "P"); // เน้น B
-      }
-    }
-    return result;
-  };
+const handleClick = (col: number, row: number) => { if (locked) return; const current = grid[col][row]; const next = OPTIONS[(OPTIONS.indexOf(current) + 1) % OPTIONS.length]; const newGrid = grid.map((col) => [...col]); newGrid[col][row] = next; setHistory((prev) => [...prev, grid.map((col) => [...col])]); setGrid(newGrid);
 
-  const handlePredict = () => {
-    if (inputs.length === 10) {
-      const countP = inputs.filter(i => i === "P").length;
-      const countB = inputs.filter(i => i === "B").length;
-
-      let guess = "";
-      if (countP > countB) guess = "P";
-      else if (countB > countP) guess = "B";
-      else guess = Math.random() < 0.5 ? "P" : "B";
-
-      setPrediction(`ทำนายตาถัดไป: ${guess}`);
-      const nextResults = generateNext15(guess);
-      setNext15(nextResults);
-    } else {
-      setPrediction("กรุณากรอกให้ครบ 10 ตา");
-      setNext15([]);
-    }
-  };
-
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-100 text-center">
-      <h1 className="text-2xl font-bold mb-4">กรอกผลย้อนหลัง 10 ตา</h1>
-
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => handleAdd("P")} className="bg-blue-500 text-white px-4 py-2 rounded">P</button>
-        <button onClick={() => handleAdd("B")} className="bg-red-500 text-white px-4 py-2 rounded">B</button>
-        <button onClick={handleClear} className="bg-gray-500 text-white px-4 py-2 rounded">ล้าง</button>
-      </div>
-
-      <div className="flex gap-2 justify-center mb-4">
-        {inputs.map((val, idx) => (
-          <div
-            key={idx}
-            className={`w-6 h-6 rounded-full ${val === "P" ? "bg-blue-600" : "bg-red-600"}`}
-          ></div>
-        ))}
-      </div>
-
-      <button onClick={handlePredict} className="bg-green-600 text-white px-6 py-2 rounded">ทำนาย</button>
-
-      {prediction && (
-        <div className="mt-6 text-lg font-semibold text-purple-700">{prediction}</div>
-      )}
-
-      {next15.length > 0 && (
-        <div className="mt-4">
-          <p className="text-lg font-medium mb-2">ผล 15 ตาถัดไป (จำลอง):</p>
-          <div className="flex gap-2 justify-center">
-            {next15.map((val, idx) => (
-              <div
-                key={idx}
-                className={`w-6 h-6 rounded-full ${val === "P" ? "bg-blue-600" : "bg-red-600"}`}
-              ></div>
-            ))}
-          </div>
-        </div>
-      )}
-    </main>
-  );
+const totalInputs = newGrid.flat().filter((v) => v).length;
+if (totalInputs === 10) {
+  setLocked(true);
+  randomizeRest(newGrid);
 }
+
+};
+
+const randomizeRest = (newGrid: string[][]) => { const fullGrid = newGrid.map((col) => [...col]); for (let c = 0; c < 10; c++) { for (let r = 0; r < 6; r++) { if (!fullGrid[c][r]) { const rand = OPTIONS[Math.floor(Math.random() * OPTIONS.length)]; fullGrid[c][r] = rand; } } } setResultGrid(fullGrid); setCheckGrid(Array.from({ length: 10 }, () => Array(6).fill(""))); };
+
+const toggleCheck = (col: number, row: number) => { const newCheck = [...checkGrid]; const current = newCheck[col][row]; newCheck[col][row] = current === "✓" ? "✗" : current === "✗" ? "" : "✓"; setCheckGrid(newCheck); };
+
+const resetAll = () => { setGrid(Array.from({ length: 10 }, () => Array(6).fill(""))); setLocked(false); setResultGrid([]); setCheckGrid([]); setHistory([]); };
+
+const undoLast = () => { if (history.length === 0 || locked) return; const prevGrid = history[history.length - 1]; setGrid(prevGrid); setHistory(history.slice(0, -1)); };
+
+const displayGrid = locked ? resultGrid : grid;
+
+return ( <div className="p-4"> <h1 className="text-xl font-bold mb-4">Baccarat Predictor</h1> <div className="flex gap-4 mb-4"> <button onClick={resetAll} className="bg-gray-700 text-white px-4 py-2 rounded">รีเซ็ต</button> <button onClick={undoLast} className="bg-yellow-600 text-white px-4 py-2 rounded">ย้อนกลับ 1 ครั้ง</button> </div> <div className="grid grid-cols-10 gap-2"> {displayGrid.map((col, colIndex) => ( <div key={colIndex} className="flex flex-col gap-2"> {col.map((cell, rowIndex) => ( <div key={rowIndex} className={w-10 h-10 rounded-full flex items-center justify-center border cursor-pointer ${ COLORS[cell as keyof typeof COLORS] || "bg-gray-200" }} onClick={() => handleClick(colIndex, rowIndex)} > {locked && ( <span className={text-white text-sm select-none} onClick={(e) => { e.stopPropagation(); toggleCheck(colIndex, rowIndex); }} > {checkGrid[colIndex][rowIndex] === "✓" ? "✓" : checkGrid[colIndex][rowIndex] === "✗" ? "✗" : ""} </span> )} </div> ))} </div> ))} </div> </div> ); }
+
